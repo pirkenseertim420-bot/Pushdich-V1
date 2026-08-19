@@ -1,0 +1,91 @@
+<!doctype html>
+<html lang="de">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no">
+<title>Pushdich – Version 1</title>
+<style>
+*{box-sizing:border-box} body{margin:0;font-family:system-ui,-apple-system,Segoe UI,sans-serif;background:#07111f;color:#fff;min-height:100vh}
+.app{max-width:520px;margin:auto;min-height:100vh;background:linear-gradient(#0b1930,#06101c);padding-bottom:85px}
+header{padding:18px 16px 10px;display:flex;justify-content:space-between;align-items:center;position:sticky;top:0;background:#081528ee;backdrop-filter:blur(10px);z-index:5}
+.logo{font-size:25px;font-weight:900;letter-spacing:.5px}.coins{background:#122641;border:1px solid #24466f;border-radius:18px;padding:8px 12px;font-weight:800}
+main{padding:8px 14px}.hero{background:linear-gradient(135deg,#133b69,#0e1f3b);border:1px solid #275b91;border-radius:22px;padding:18px;margin-bottom:14px;box-shadow:0 10px 30px #0004}
+h1,h2,h3,p{margin:0 0 8px}.hero h1{font-size:30px}.muted{color:#9fb2c9}.btn{border:0;border-radius:14px;padding:13px 16px;font-weight:900;font-size:15px;cursor:pointer;background:#20d27c;color:#04140d;width:100%;margin-top:8px}.btn.secondary{background:#193452;color:#fff}.btn:disabled{opacity:.45}
+.section{margin-top:18px}.grid{display:grid;grid-template-columns:1fr 1fr;gap:10px}.pack{background:#0e2139;border:1px solid #244667;border-radius:18px;padding:14px}.pack .emoji{font-size:42px;text-align:center}.pack h3{text-align:center;margin-top:5px}.price{text-align:center;color:#ffd35a;font-weight:900}.cards{display:grid;grid-template-columns:repeat(3,1fr);gap:8px}.card{background:linear-gradient(145deg,#162d49,#0c1b2d);border:1px solid #315473;border-radius:13px;padding:9px;min-height:155px;display:flex;flex-direction:column;justify-content:space-between;box-shadow:0 6px 15px #0003}.card.common{border-color:#718096}.card.uncommon{border-color:#36c77a}.card.rare{border-color:#45a8ff}.card.epic{border-color:#b76cff}.card.legendary{border-color:#ffad35}.card.icon{border-color:#ff4d6d;background:linear-gradient(145deg,#3a1327,#171022)}.player{font-weight:900;font-size:14px}.nation{font-size:11px;color:#9fb2c9}.rarity{font-size:10px;font-weight:900;text-transform:uppercase}.value{font-weight:900;color:#ffd35a}.sell{font-size:11px;padding:7px;border-radius:9px;border:0;background:#193452;color:white;font-weight:800}
+nav{position:fixed;bottom:0;left:50%;transform:translateX(-50%);width:min(520px,100%);display:grid;grid-template-columns:repeat(3,1fr);background:#081528f2;border-top:1px solid #213b59;padding:8px;z-index:10}
+nav button{background:none;border:0;color:#8fa5bd;font-weight:800;padding:8px}nav button.active{color:#fff}
+.modal{position:fixed;inset:0;background:#000b;display:none;align-items:center;justify-content:center;padding:18px;z-index:20}.modal.show{display:flex}.modalbox{width:min(500px,100%);background:#0b1a2d;border:1px solid #2c5378;border-radius:22px;padding:18px;max-height:90vh;overflow:auto}.packopen{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin:14px 0}.reveal{animation:pop .35s ease both}@keyframes pop{from{transform:scale(.7);opacity:0}to{transform:scale(1);opacity:1}}
+.empty{text-align:center;padding:30px;color:#8fa5bd;background:#0d2035;border-radius:16px}
+.toast{position:fixed;top:70px;left:50%;transform:translateX(-50%);background:#142c49;border:1px solid #35658e;padding:10px 15px;border-radius:14px;display:none;z-index:30;font-weight:800}
+</style>
+</head>
+<body>
+<div class="app">
+<header><div class="logo">⚽ PUSHDICH</div><div class="coins">🪙 <span id="coins">0</span></div></header>
+<main id="home"></main>
+</div>
+<nav>
+<button id="navPacks" class="active" onclick="showTab('packs')">🃏 Packs</button>
+<button id="navCollection" onclick="showTab('collection')">📚 Sammlung</button>
+<button id="navShop" onclick="showTab('shop')">🏪 Shop</button>
+</nav>
+<div class="modal" id="modal"><div class="modalbox"><div id="modalContent"></div><button class="btn secondary" onclick="closeModal()">Schließen</button></div></div>
+<div class="toast" id="toast"></div>
+
+<script>
+const players=[
+["Lionel Messi","🇦🇷","legendary",12500],["Cristiano Ronaldo","🇵🇹","legendary",12000],["Kylian Mbappé","🇫🇷","epic",4500],
+["Jude Bellingham","🏴","epic",4000],["Erling Haaland","🇳🇴","epic",4200],["Vinícius Júnior","🇧🇷","rare",1800],
+["Jamal Musiala","🇩🇪","rare",1600],["Florian Wirtz","🇩🇪","rare",1500],["Pedri","🇪🇸","rare",1400],
+["Bukayo Saka","🏴","rare",1350],["Harry Kane","🏴","uncommon",650],["Kevin De Bruyne","🇧🇪","uncommon",700],
+["Lamine Yamal","🇪🇸","uncommon",850],["Thomas Müller","🇩🇪","uncommon",500],["Joshua Kimmich","🇩🇪","uncommon",450],
+["Nico Schlotterbeck","🇩🇪","common",180],["Alejandro Grimaldo","🇪🇸","common",190],["Serhou Guirassy","🇬🇳","common",210],
+["Robert Andrich","🇩🇪","common",130],["Emre Can","🇩🇪","common",120],["Ángel Di María","🇦🇷","legendary",9000],
+["Zlatan Ibrahimović","🇸🇪","icon",25000]
+];
+const rarityLabel={common:"Common",uncommon:"Uncommon",rare:"Rare",epic:"Epic",legendary:"Legendary",icon:"Icon"};
+const packs=[
+{name:"Free Pack",price:0,emoji:"🎁",weights:{common:62,uncommon:25,rare:9,epic:3.5,legendary:.45,icon:.05}},
+{name:"Basic Pack",price:100,emoji:"📦",weights:{common:48,uncommon:32,rare:15,epic:4,legendary:.9,icon:.1}},
+{name:"Premium Pack",price:500,emoji:"💎",weights:{common:25,uncommon:35,rare:27,epic:10,legendary:2.8,icon:.2}},
+{name:"Rare Pack",price:2500,emoji:"🔥",weights:{common:8,uncommon:22,rare:40,epic:23,legendary:6.5,icon:.5}},
+{name:"Legendary Pack",price:10000,emoji:"👑",weights:{common:0,uncommon:5,rare:20,epic:40,legendary:30,icon:5}}
+];
+let state=JSON.parse(localStorage.getItem("pushdich_v1")||'{"coins":0,"collection":{}}');
+function save(){localStorage.setItem("pushdich_v1",JSON.stringify(state));document.getElementById("coins").textContent=state.coins.toLocaleString("de-DE")}
+function toast(t){const x=document.getElementById("toast");x.textContent=t;x.style.display="block";clearTimeout(window.tt);window.tt=setTimeout(()=>x.style.display="none",1800)}
+function pickRarity(weights){let r=Math.random()*100,s=0;for(const [k,v] of Object.entries(weights)){s+=v;if(r<s)return k}return "common"}
+function pickCard(rarity){const a=players.filter(p=>p[2]===rarity);return a[Math.floor(Math.random()*a.length)]}
+function openPack(i){
+ const pack=packs[i]; if(state.coins<pack.price){toast("Nicht genug Coins!");return}
+ state.coins-=pack.price;
+ const drawn=[]; for(let n=0;n<9;n++){const p=pickCard(pickRarity(pack.weights));drawn.push(p);const key=p[0];state.collection[key]=(state.collection[key]||0)+1}
+ save(); showReveal(drawn,pack.name);
+}
+function cardHTML(p,count=0,withSell=false){
+ return `<div class="card ${p[2]}"><div><div class="rarity">${rarityLabel[p[2]]}</div><div class="player">${p[0]}</div><div class="nation">${p[1]}</div></div><div class="value">🪙 ${p[3].toLocaleString("de-DE")}</div>${withSell?`<div style="display:flex;justify-content:space-between;align-items:center"><span class="muted">x${count}</span><button class="sell" onclick='sellCard(${JSON.stringify(p[0])})'>Verkaufen</button></div>`:""}</div>`
+}
+function showReveal(cards,name){
+ document.getElementById("modalContent").innerHTML=`<h2>${name}</h2><p class="muted">9 Karten gezogen!</p><div class="packopen">${cards.map((p,i)=>`<div class="reveal" style="animation-delay:${i*50}ms">${cardHTML(p)}</div>`).join("")}</div>`;
+ document.getElementById("modal").classList.add("show");
+}
+function closeModal(){document.getElementById("modal").classList.remove("show")}
+function sellCard(name){const p=players.find(x=>x[0]===name);if(!p||!state.collection[name])return;state.collection[name]--;state.coins+=p[3];save();toast(`+${p[3].toLocaleString("de-DE")} Coins`);renderCollection()}
+function showTab(tab){document.querySelectorAll("nav button").forEach(b=>b.classList.remove("active"));document.getElementById(tab==="packs"?"navPacks":tab==="collection"?"navCollection":"navShop").classList.add("active");if(tab==="packs")renderPacks();if(tab==="collection")renderCollection();if(tab==="shop")renderShop()}
+function renderPacks(){
+ document.getElementById("home").innerHTML=`<div class="hero"><h1>Dein Fußballkarten-Tycoon</h1><p class="muted">Öffne Packs, sammle Stars und verkaufe Karten für Coins. Das Free Pack ist unbegrenzt verfügbar.</p></div>
+ <div class="section"><h2>🃏 Packs</h2><p class="muted">Jedes Pack enthält exakt 9 Karten.</p><div class="grid">${packs.map((p,i)=>`<div class="pack"><div class="emoji">${p.emoji}</div><h3>${p.name}</h3><div class="price">${p.price===0?"KOSTENLOS":"🪙 "+p.price.toLocaleString("de-DE")}</div><button class="btn" onclick="openPack(${i})">${p.price===0?"Öffnen":"Kaufen & öffnen"}</button></div>`).join("")}</div></div>`;
+}
+function renderCollection(){
+ const owned=players.filter(p=>state.collection[p[0]]>0); const total=Object.values(state.collection).reduce((a,b)=>a+b,0);
+ document.getElementById("home").innerHTML=`<div class="hero"><h1>📚 Sammlung</h1><p class="muted">${owned.length}/${players.length} verschiedene Karten · ${total} Karten insgesamt</p></div>
+ <div class="cards">${owned.length?owned.map(p=>cardHTML(p,state.collection[p[0]],true)).join(""):"<div class='empty' style='grid-column:1/-1'>Noch keine Karten. Öffne dein erstes Free Pack!</div>"}</div>`;
+}
+function renderShop(){
+ document.getElementById("home").innerHTML=`<div class="hero"><h1>🏪 Kartenhandel</h1><p class="muted">Verkaufe Karten aus deiner Sammlung und finanziere damit bessere Packs.</p><h2>🪙 ${state.coins.toLocaleString("de-DE")} Coins</h2></div>
+ <div class="section"><h2>So funktioniert Pushdich</h2><div class="pack"><p>1. 🃏 Kostenloses Pack öffnen</p><p>2. ⚽ 9 Fußballkarten ziehen</p><p>3. 💰 Karten verkaufen</p><p>4. 📈 Mit Coins bessere Packs kaufen</p><p>5. 👑 Seltene Karten sammeln</p></div></div>`;
+}
+save(); renderPacks();
+</script>
+</body>
+</html>
